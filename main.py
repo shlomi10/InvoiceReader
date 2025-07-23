@@ -7,7 +7,7 @@ from aws_file_utils import upload_and_get_presigned_url
 from invoice_reader import analyze_invoice_url
 
 '''
-FastAPI app with two endpoints:
+FastAPI app with endpoints:
 /: returns a hello message.
 /read-invoice-by-url: invokes analyze_invoice_url() using image URL as a query param.
 Calls init_db() on startup.
@@ -22,13 +22,6 @@ def read_root():
 
 # To run the app, use the command:
 # uvicorn main:app --host localhost --port 8000
-
-@app.get("/read-invoice-by-url")
-def read_invoice_by_url(url: str = Query(..., description="Direct image URL")):
-    try:
-        return analyze_invoice_url(url)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/read-invoice-by-url")
 def read_invoice_by_url(url: str = Query(..., description="Direct image URL")):

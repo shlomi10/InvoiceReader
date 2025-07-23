@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import openai
 from db import *
 from models import Invoice
+import json, re
 
 '''
 Loads an image from a URL and sends it to OpenAI's Vision API (gpt-4o) to extract invoice fields.
@@ -45,9 +46,7 @@ Only return the JSON, no explanations or notes.
         max_tokens=500
     )
 
-
     # Extract JSON from the reply (be generous in case model adds explanation)
-    import json, re
     text_response = response.choices[0].message.content
     match = re.search(r"\{.*\}", text_response, re.DOTALL)
     if match:
