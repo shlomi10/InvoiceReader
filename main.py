@@ -10,6 +10,15 @@ from fastapi.security import OAuth2PasswordRequestForm
 from users import *
 from models import *
 from auth import *
+from fastapi import Depends
+from users import get_db
+from sqlalchemy.orm import Session
+from invoice_reader import get_user_invoices
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
+from fastapi import Request
+from fastapi.responses import HTMLResponse
 
 '''
 FastAPI app with endpoints:
@@ -20,10 +29,6 @@ Calls init_db() on startup.
 
 app = FastAPI()
 init_db()
-
-@app.get("/")
-def read_root():
-    return {"message": "Hello, FastAPI!"}
 
 # To run the app, use the command:
 # uvicorn main:app --host localhost --port 8000
@@ -52,9 +57,9 @@ def upload_invoice_file(file: UploadFile = File(...)):
 
 @app.post("/signup")
 def signup(
-    username: str = Form(...),
-    email: str = Form(...),
-    password: str = Form(...)
+        username: str = Form(...),
+        email: str = Form(...),
+        password: str = Form(...)
 ):
     try:
         user = create_user(username, email, password)
@@ -75,3 +80,42 @@ def read_me(current_user: User = Depends(get_current_user)):
         "username": current_user.username,
         "email": current_user.email
     }
+
+@app.post("/upload-invoice-file")
+def upload_invoice_file(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
+    try:
+        file_bytes = file.file.read()
+        file_key, url = upload_and_get_presigned_url(file_bytes, file.filename, file.content_type)
+        print(f"Presigned s3 url: {url}")
+        data = analyze_invoice_url(url)
+        data["file_key"] = file_key
+        data["user_id"] = current_user.id
+        save_invoice_to_db(data)
+        return {"status": "success", "invoice": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/my-invoices")
+def my_invoices(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    invoices = get_user_invoices(current_user.id, db)
+    return [invoice.__dict__ for invoice in invoices]
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+@app.get("/")
+def root():
+    return RedirectResponse(url="/signup-form")
+@app.get("/signup-form")
+def signup_form(request: Request):
+    return templates.TemplateResponse("signup.html", {"request": request})
+@app.get("/login-form")
+def login_form(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+@app.get("/upload-invoice-form")
+def upload_invoice_form(request: Request):
+    return templates.TemplateResponse("upload_invoice.html", {"request": request})
+@app.get("/my-invoices", response_class=HTMLResponse)
+def my_invoices_page(
+        request: Request
+):
+    return templates.TemplateResponse("my_invoices.html", {"request": request})

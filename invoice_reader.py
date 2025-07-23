@@ -6,6 +6,9 @@ import openai
 from db import *
 from models import Invoice
 import json, re
+from aws_file_utils import *
+from models import Invoice
+from sqlalchemy.orm import Session
 
 '''
 Loads an image from a URL and sends it to OpenAI's Vision API (gpt-4o) to extract invoice fields.
@@ -72,6 +75,13 @@ def save_invoice_to_db(data: dict):
         raise e
     finally:
         db.close()
+
+def get_user_invoices(user_id: int, db: Session):
+    invoices = db.query(Invoice).filter(Invoice.user_id == user_id).all()
+    for invoice in invoices:
+        if invoice.file_key:
+            invoice.presigned_url = get_presigned_url_from_key(invoice.file_key)
+    return invoices
 
 # Example
 if __name__ == "__main__":

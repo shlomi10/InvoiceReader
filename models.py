@@ -3,7 +3,7 @@ from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 file_key = Column(String, nullable=True)
-
+user_id = Column(Integer, nullable=True)
 
 class Invoice(Base):
     __tablename__ = "invoices"
