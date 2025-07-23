@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
-
+file_key = Column(String, nullable=True)
 
 
 class Invoice(Base):

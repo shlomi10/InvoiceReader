@@ -39,6 +39,7 @@ def upload_invoice_file(file: UploadFile = File(...)):
         key, url = upload_and_get_presigned_url(file_bytes, file.filename, file.content_type)
         print (f"Presigned s3 url: {url}")
         data = analyze_invoice_url(url)
+        data["file_key"] = key
         save_invoice_to_db(data)
         return {"status": "success", "invoice": data}
     except Exception as e:
