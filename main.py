@@ -5,6 +5,11 @@ from invoice_reader import save_invoice_to_db
 from fastapi import File, UploadFile
 from aws_file_utils import upload_and_get_presigned_url
 from invoice_reader import analyze_invoice_url
+from fastapi import FastAPI, HTTPException, Form, Depends
+from fastapi.security import OAuth2PasswordRequestForm
+from users import *
+from models import *
+from auth import *
 
 '''
 FastAPI app with endpoints:
@@ -45,3 +50,28 @@ def upload_invoice_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/signup")
+def signup(
+    username: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...)
+):
+    try:
+        user = create_user(username, email, password)
+        return {"msg": "User created", "user_id": user.id}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+@app.post("/login")
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = validate_user_credentials(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    token = create_access_token(data={"sub": str(user.username)})
+    return {"access_token": token, "token_type": "bearer"}
+@app.get("/me")
+def read_me(current_user: User = Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email
+    }
