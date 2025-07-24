@@ -43,13 +43,17 @@ def read_invoice_by_url(url: str = Query(..., description="Direct image URL")):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/upload-invoice-file")
-def upload_invoice_file(file: UploadFile = File(...)):
+def upload_invoice_file(
+        file: UploadFile = File(...),
+        current_user: User = Depends(get_current_user)
+):
     try:
         file_bytes = file.file.read()
         key, url = upload_and_get_presigned_url(file_bytes, file.filename, file.content_type)
         print (f"Presigned s3 url: {url}")
         data = analyze_invoice_url(url)
         data["file_key"] = key
+        data["user_id"] = current_user.id
         save_invoice_to_db(data)
         return {"status": "success", "invoice": data}
     except Exception as e:

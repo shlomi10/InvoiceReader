@@ -15,6 +15,8 @@ class Invoice(Base):
     category = Column(String, nullable=False)
     provider = Column(String, nullable=False)
     invoice_number = Column(String, nullable=False, unique=False)
+    user_id = Column(Integer, nullable=True)
+    file_key = Column(String, nullable=True)
 
 class User(Base):
     __tablename__ = "users"
